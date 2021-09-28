@@ -304,14 +304,15 @@ _polyglot_branch_status() {
     case $POLYGLOT_GIT_STATUS in
       *'renamed:    '*)
         if [ "${POLYGLOT_SHOW_GIT_STATUS_COUNT:-0}" -eq 1 ]; then
-          POLYGLOT_GIT_STATUS_RENAMED_COUNT="$( ren=${POLYGLOT_GIT_STATUS/renamed:}; echo $(( (${#POLYGLOT_GIT_STATUS} - ${#ren}) / 9)) ; unset ren) "
+          POLYGLOT_GIT_STATUS_RENAMED_COUNT="$( ren=${POLYGLOT_GIT_STATUS//renamed:}; echo $(( (${#POLYGLOT_GIT_STATUS} - ${#ren}) / 9)) ; unset ren) "
         fi
         POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}>${POLYGLOT_GIT_STATUS_RENAMED_COUNT}" ;;
     esac
     case $POLYGLOT_GIT_STATUS in
       *'Untracked files:'*)
         if [ "${POLYGLOT_SHOW_GIT_STATUS_COUNT:-0}" -eq 1 ]; then
-          POLYGLOT_GIT_STATUS_UNTRACKED_COUNT="$(LC_ALL=C GIT_OPTIONAL_LOCKS=0 env git clean -dn | wc -l 2>&1) "
+          POLYGLOT_GIT_STATUS_UNTRACKED=$(LC_ALL=C GIT_OPTIONAL_LOCKS=0 env git clean -dn 2>&1)
+          POLYGLOT_GIT_STATUS_UNTRACKED_COUNT="$( untr=${POLYGLOT_GIT_STATUS_UNTRACKED//Would remove} ; echo $(( (${#POLYGLOT_GIT_STATUS_UNTRACKED} - ${#untr}) / 12 )) ; unset untr) "
         fi
         POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}?${POLYGLOT_GIT_STATUS_UNTRACKED_COUNT}" ;;
     esac
