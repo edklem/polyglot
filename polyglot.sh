@@ -247,7 +247,7 @@ _polyglot_prompt_dirtrim() {
 ###########################################################
 _polyglot_branch_status() {
   [ -n "$ZSH_VERSION" ] && \
-    setopt LOCAL_OPTIONS NO_WARN_CREATE_GLOBAL NO_WARN_NESTED_VAR > /dev/null 2>&1
+    setopt LOCAL_OPTIONS NO_WARN_CREATE_GLOBAL NO_WARN_NESTED_VAR SH_WORD_SPLIT > /dev/null 2>&1
 
   POLYGLOT_REF="$(env git symbolic-ref --quiet HEAD 2> /dev/null)"
   case $? in        # See what the exit code is.
@@ -270,51 +270,110 @@ _polyglot_branch_status() {
       *' have diverged,'*) POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}&*" ;;
     esac
     case $POLYGLOT_GIT_STATUS in
-      *'Your branch is behind '*) POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}&" ;;
-    esac
-    case $POLYGLOT_GIT_STATUS in
-      *'Your branch is ahead of '*) POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}*" ;;
-    esac
-    case $POLYGLOT_GIT_STATUS in
-      *'new file:   '*)
-        if [ "${POLYGLOT_SHOW_GIT_STATUS_COUNT:-0}" -eq 1 ]; then
-          POLYGLOT_GIT_STATUS_NEW_COUNT="$( new=${POLYGLOT_GIT_STATUS//new file:}; echo $(( (${#POLYGLOT_GIT_STATUS} - ${#new}) / 9)) ; unset new) "
+      *'Your branch is behind '*) 
+        POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}&"
+        if [ "${POLYGLOT_SHOW_GIT_STATUS_COUNT:-0}" -eq 1 ]; then 
+          PG_AHEAD_TMP=${POLYGLOT_GIT_STATUS##On*Your branch is behind*by }
+          POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}${PG_AHEAD_TMP%% commit*} "
+          unset PG_AHEAD_TMP
         fi
-        POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}+${POLYGLOT_GIT_STATUS_NEW_COUNT}" ;;
+      ;;
     esac
     case $POLYGLOT_GIT_STATUS in
-      *'deleted:    '*)
-        if [ "${POLYGLOT_SHOW_GIT_STATUS_COUNT:-0}" -eq 1 ]; then
-          POLYGLOT_GIT_STATUS_DEL_COUNT="$( del=${POLYGLOT_GIT_STATUS//deleted:}; echo $(( (${#POLYGLOT_GIT_STATUS} - ${#del}) / 8)) ; unset del) "
+      *'Your branch is ahead of '*) 
+        POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}*"
+        if [ "${POLYGLOT_SHOW_GIT_STATUS_COUNT:-0}" -eq 1 ]; then 
+          PG_AHEAD_TMP=${POLYGLOT_GIT_STATUS##On*Your branch is ahead of*by }
+          POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}${PG_AHEAD_TMP%% commit*} "
+          unset PG_AHEAD_TMP
         fi
-        POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}x${POLYGLOT_GIT_STATUS_DEL_COUNT}" ;;
+      ;;
+    esac
+
+    case $POLYGLOT_GIT_STATUS in
+      *'new file:   '*) 
+        POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}+" 
+        if [ "${POLYGLOT_SHOW_GIT_STATUS_COUNT:-0}" -eq 1 ]; then 
+          POLYGLOT_GIT_STATUS_NEW_COUNT=0
+          for i in $POLYGLOT_GIT_STATUS ; do 
+            case $i in  *'file:'*)
+              POLYGLOT_GIT_STATUS_NEW_COUNT=$(( POLYGLOT_GIT_STATUS_NEW_COUNT+ 1));; 
+            esac
+          done
+
+          POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}${POLYGLOT_GIT_STATUS_NEW_COUNT} " 
+          unset POLYGLOT_GIT_STATUS_NEW_COUNT
+        fi
+
+      ;;
+    esac
+    case $POLYGLOT_GIT_STATUS in
+      *'deleted:    '*) 
+        POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}x"
+        if [ "${POLYGLOT_SHOW_GIT_STATUS_COUNT:-0}" -eq 1 ]; then 
+          POLYGLOT_GIT_STATUS_DEL_COUNT=0
+          for i in $POLYGLOT_GIT_STATUS ; do 
+            case $i in  *'deleted:'*)
+              POLYGLOT_GIT_STATUS_DEL_COUNT=$(( POLYGLOT_GIT_STATUS_DEL_COUNT+ 1));; 
+            esac
+          done
+          POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}${POLYGLOT_GIT_STATUS_DEL_COUNT} " 
+          unset POLYGLOT_GIT_STATUS_DEL_COUNT
+        fi
+      ;;
     esac
     case $POLYGLOT_GIT_STATUS in
       *'modified:   '*)
-        if [ "${POLYGLOT_SHOW_GIT_STATUS_COUNT:-0}" -eq 1 ]; then
-          POLYGLOT_GIT_STATUS_MODIFIED_COUNT="$( mod=${POLYGLOT_GIT_STATUS//modified:}; echo $(( (${#POLYGLOT_GIT_STATUS} - ${#mod}) / 9)) ; unset mod) "
-        fi
         if [ "$1" = 'ksh' ]; then
-          POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}!!${POLYGLOT_GIT_STATUS_MODIFIED_COUNT}"
+          POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}!!"
         else
-          POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}!${POLYGLOT_GIT_STATUS_MODIFIED_COUNT}"
+          POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}!"
+        fi
+
+        if [ "${POLYGLOT_SHOW_GIT_STATUS_COUNT:-0}" -eq 1 ]; then 
+          POLYGLOT_GIT_STATUS_MODIFIED_COUNT=0
+          for i in $POLYGLOT_GIT_STATUS ; do 
+            case $i in  *'modified:'*)
+              POLYGLOT_GIT_STATUS_MODIFIED_COUNT=$(( POLYGLOT_GIT_STATUS_MODIFIED_COUNT+ 1));; 
+            esac
+          done
+          POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}${POLYGLOT_GIT_STATUS_MODIFIED_COUNT} "
+          unset POLYGLOT_GIT_STATUS_MODIFIED_COUNT
         fi
         ;;
     esac
     case $POLYGLOT_GIT_STATUS in
-      *'renamed:    '*)
-        if [ "${POLYGLOT_SHOW_GIT_STATUS_COUNT:-0}" -eq 1 ]; then
-          POLYGLOT_GIT_STATUS_RENAMED_COUNT="$( ren=${POLYGLOT_GIT_STATUS//renamed:}; echo $(( (${#POLYGLOT_GIT_STATUS} - ${#ren}) / 9)) ; unset ren) "
+      *'renamed:    '*) 
+        POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}>" 
+        if [ "${POLYGLOT_SHOW_GIT_STATUS_COUNT:-0}" -eq 1 ]; then 
+          POLYGLOT_GIT_STATUS_RENAMED_COUNT=0
+          for i in $POLYGLOT_GIT_STATUS ; do 
+            case $i in  *'renamed:'*)
+              POLYGLOT_GIT_STATUS_RENAMED_COUNT=$(( POLYGLOT_GIT_STATUS_RENAMED_COUNT+ 1));; 
+            esac
+          done
+          POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}>${POLYGLOT_GIT_STATUS_RENAMED_COUNT} " 
+          unset POLYGLOT_GIT_STATUS_RENAMED_COUNT
+
         fi
-        POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}>${POLYGLOT_GIT_STATUS_RENAMED_COUNT}" ;;
+        ;; 
     esac
     case $POLYGLOT_GIT_STATUS in
-      *'Untracked files:'*)
-        if [ "${POLYGLOT_SHOW_GIT_STATUS_COUNT:-0}" -eq 1 ]; then
-          POLYGLOT_GIT_STATUS_UNTRACKED=$(LC_ALL=C GIT_OPTIONAL_LOCKS=0 env git clean -dn 2>&1)
-          POLYGLOT_GIT_STATUS_UNTRACKED_COUNT="$( untr=${POLYGLOT_GIT_STATUS_UNTRACKED//Would remove} ; echo $(( (${#POLYGLOT_GIT_STATUS_UNTRACKED} - ${#untr}) / 12 )) ; unset untr) "
+      *'Untracked files:'*) 
+        POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}?" 
+        if [ "${POLYGLOT_SHOW_GIT_STATUS_COUNT:-0}" -eq 1  ]; then 
+          POLYGLOT_GIT_STATUS_UNTRACKED=$(LC_ALL=C GIT_OPTIONAL_LOCKS=0 git status --porcelain=v1)
+          POLYGLOT_GIT_STATUS_UNTRACKED_COUNT=0
+          for i in $POLYGLOT_GIT_STATUS_UNTRACKED ; do 
+            case $i in  *'??'*)
+              POLYGLOT_GIT_STATUS_UNTRACKED_COUNT=$(( POLYGLOT_GIT_STATUS_UNTRACKED_COUNT+ 1));; 
+            esac
+          done
+
+          POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}${POLYGLOT_GIT_STATUS_UNTRACKED_COUNT} " 
+          unset POLYGLOT_GIT_STATUS_UNTRACKED_COUNT POLYGLOT_GIT_STATUS_UNTRACKED
         fi
-        POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}?${POLYGLOT_GIT_STATUS_UNTRACKED_COUNT}" ;;
+        ;;
     esac
 
     [ -n "$POLYGLOT_SYMBOLS" ] && POLYGLOT_SYMBOLS=" $POLYGLOT_SYMBOLS"
@@ -322,8 +381,9 @@ _polyglot_branch_status() {
     printf ' (%s%s)' "${POLYGLOT_REF#refs/heads/}" "${POLYGLOT_SYMBOLS% }"
   fi
 
-  unset POLYGLOT_REF POLYGLOT_GIT_STATUS POLYGLOT_SYMBOL POLYGLOT_GIT_STATUS_NEW_COUNT POLYGLOT_GIT_STATUS_DEL_COUNT POLYGLOT_GIT_STATUS_MODIFIED_COUNT POLYGLOT_GIT_STATUS_RENAMED_COUNT POLYGLOT_GIT_STATUS_UNTRACKED_COUNT
+  unset POLYGLOT_REF POLYGLOT_GIT_STATUS POLYGLOT_SYMBOL
 }
+
 
 ###########################################################
 # Native sh alternative to basename. See
