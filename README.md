@@ -111,6 +111,37 @@ Untracked | ?
 
 If you are working on an extremely large Git repository, such as an operating system kernel, calculating the Git status can be very slow. If you need to, you may set `POLYGLOT_SHOW_UNTRACKED=0`, which will cause the Polyglot Prompt to ignore the Git status for untracked files. This will have the effect of speeding up the display of the prompt considerably.
 
+### `POLYGLOT_SHOW_GIT_STATUS_COUNT`
+If you would like to see the count of files next to each of the status symbols in the prmpt set this var equal to 1
+
+```
+POLYGLOT_SHOW_GIT_STATUS_COUNT=1
+```
+
+This will display the prompt with a number after each symbol and a space between the status
+
+```
++edklem ~/src/polyglot (feature-dev !1 ?1) $ 
+```
+
+## Additional prompt options
+### `POLYGLOT_USER_PROMPT_INDICATOR`
+
+If you would like to change the last character of the prompt (prompt indicator???) set it with this var:
+
+
+```
+POLYGLOT_USER_PROMPT_INDICATOR='>'
+```
+
+This will change the end prompt symbol to '>' like this:
+
+
+```
++edklem ~/src/polyglot (feature-dev) > 
+```
+
+
 ## Exit Status
 
 If the exit status of the most recently executed command is other than zero (zero indicating success), the exit status will be displayed to the left of the prompt:
