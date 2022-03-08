@@ -520,6 +520,13 @@ if [ -n "$ZSH_VERSION" ] && [ "${0#-}" != 'ksh' ] &&
       PS1+='%2v'
       PS1+='%3v %# ${POLYGLOT_USER_PROMPT_INDICATOR:-%#} '
     fi
+    case "$TERM" in 
+    xterm*|rxvt*)
+      print -Pn "\e]0;$USER${psvar[1]} ${psvar[2]} ${psvar[3]} \a"
+      ;;
+    *)
+      ;;
+    esac
   }
 
   ###########################################################
@@ -633,6 +640,15 @@ elif [ -n "$BASH_VERSION" ]; then
         PS1+="\$(_polyglot_branch_status) # "
       fi
     fi
+    
+    # Set terminal title
+    case "$TERM" in 
+    xterm*|rxvt*)
+      PS1="\[\e]0;\u${POLYGLOT_HOSTNAME_STRING} \w $(_polyglot_branch_status)\a\]$PS1"
+      ;;
+    *)
+      ;;
+    esac
   }
 
   # Only display the $HOSTNAME for an ssh connection
@@ -643,7 +659,7 @@ elif [ -n "$BASH_VERSION" ]; then
   fi
 
   PROMPT_COMMAND='_polyglot_prompt_command $POLYGLOT_PROMPT_DIRTRIM'
-
+  
   # vi command mode
   if [ "$TERM" != 'dumb' ]; then     # Line editing not enabled in Emacs shell
     bind 'set show-mode-in-prompt'                      # Since bash 4.3
