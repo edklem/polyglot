@@ -750,12 +750,12 @@ elif _polyglot_is_pdksh || [ "${0#-}" = 'dash' ] || _polyglot_is_busybox ||
     fi
     PS1=$PS1'$(_polyglot_venv)'
     # shellcheck disable=SC2025
-    ! _polyglot_is_dragonfly_console && [ "${0#-}" != 'dash' ] && PS1="$PS1\033[7m"
+    ! _polyglot_is_dragonfly_console && ! _polyglot_sh_is_dash && [ "${0#-}" != 'dash' ] && PS1="$PS1\033[7m"
     _polyglot_is_pdksh && ! _polyglot_is_dragonfly_console && PS1=$PS1$(print "$POLYGLOT_NP")
     PS1=$PS1'${LOGNAME:-$(logname)}$POLYGLOT_HOSTNAME_STRING'
     _polyglot_is_pdksh && ! _polyglot_is_dragonfly_console && PS1=$PS1$(print "$POLYGLOT_NP")
     # shellcheck disable=SC2025
-    ! _polyglot_is_dragonfly_console && [ "${0#-}" != 'dash' ] && PS1="$PS1\033[0m"
+    ! _polyglot_is_dragonfly_console && ! _polyglot_sh_is_dash && [ "${0#-}" != 'dash' ] && PS1="$PS1\033[0m"
     _polyglot_is_pdksh && ! _polyglot_is_dragonfly_console && PS1=$PS1$(print "$POLYGLOT_NP")
     PS1=$PS1' $(_polyglot_prompt_dirtrim "$POLYGLOT_PROMPT_DIRTRIM")$(_polyglot_branch_status $POLYGLOT_KSH_BANG) # '
   fi
