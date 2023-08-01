@@ -72,6 +72,9 @@ fi
 # Don't let virtual env active scripts alter prompt
 VIRTUAL_ENV_DISABLE_PROMPT=1
 
+# Check for POLYGLOT_ROOT_COLOR and set to default if not already set.
+test -z $POLYGLOT_ROOT_COLOR && POLYGLOT_ROOT_COLOR='[7m'
+
 ############################################################
 # Display non-zero exit status
 #
@@ -619,7 +622,7 @@ elif [ -n "$BASH_VERSION" ]; then
       if _polyglot_has_colors; then
         PS1="\[\e[01;31m\]\$(_polyglot_exit_status \$?)\[\e[0m\]"
         PS1+="\$(_polyglot_venv)"
-        PS1+="\[\e[7m\]\u@\h\[\e[0m\] "
+        PS1+="\[\e${POLYGLOT_ROOT_COLOR}\]\u@\h\[\e[0m\] "
         case $BASH_VERSION in
           1.*|2.*|3.*)
             PS1+="\[\e[01;34m\]\$(_polyglot_prompt_dirtrim \$POLYGLOT_PROMPT_DIRTRIM)\[\e[0m\]"
@@ -726,7 +729,7 @@ elif [ -n "$KSH_VERSION" ] || _polyglot_is_dtksh || [ -n "$ZSH_VERSION" ] &&
           PS1+='$(_polyglot_exit_status $?)'
           PS1+=$(print "\001\E[0m")
           PS1+='$(_polyglot_venv)'
-          PS1+=$(print "\E[7m\001")
+          PS1+=$(print "\E${POLYGLOT_ROOT_COLOR}\001")
           PS1+='${LOGNAME:-$(logname)}$POLYGLOT_HOSTNAME_STRING'
           PS1+=$(print "\001\E[0m\001")
           PS1+=' '
@@ -761,7 +764,7 @@ elif [ -n "$KSH_VERSION" ] || _polyglot_is_dtksh || [ -n "$ZSH_VERSION" ] &&
         fi
       else  # Superuser
         if _polyglot_has_colors && [ -z "$ZSH_VERSION" ]; then
-          PS1="$(print '\E[31;1m$(_polyglot_exit_status $?)\E[0m$(_polyglot_venv)\E[7m${LOGNAME:-$(logname)}$POLYGLOT_HOSTNAME_STRING\E[0m \E[34;1m$(_polyglot_prompt_dirtrim "$POLYGLOT_PROMPT_DIRTRIM")\E[0m\E[33m$(_polyglot_branch_status $POLYGLOT_KSH_BANG)\E[0m\E[0m # ')"
+          PS1="$(print '\E[31;1m$(_polyglot_exit_status $?)\E[0m$(_polyglot_venv)\E${POLYGLOT_ROOT_COLOR}${LOGNAME:-$(logname)}$POLYGLOT_HOSTNAME_STRING\E[0m \E[34;1m$(_polyglot_prompt_dirtrim "$POLYGLOT_PROMPT_DIRTRIM")\E[0m\E[33m$(_polyglot_branch_status $POLYGLOT_KSH_BANG)\E[0m\E[0m # ')"
         else
           PS1="$(print '$(_polyglot_exit_status $?)$(_polyglot_venv)\E[7m${LOGNAME:-$(logname)}$POLYGLOT_HOSTNAME_STRING\E[0m $(_polyglot_prompt_dirtrim "$POLYGLOT_PROMPT_DIRTRIM")$(_polyglot_branch_status $POLYGLOT_KSH_BANG) # ')"
         fi
@@ -804,7 +807,7 @@ elif _polyglot_is_pdksh || [ "${0#-}" = 'dash' ] || _polyglot_is_busybox ||
     if ! _polyglot_is_superuser; then
       PS1=$PS1$(print "$POLYGLOT_NP\033[32;1m$POLYGLOT_NP")
     else
-      PS1=$PS1$(print "$POLYGLOT_NP\033[7m$POLYGLOT_NP")
+      PS1=$PS1$(print "$POLYGLOT_NP\033${POLYGLOT_ROOT_COLOR}$POLYGLOT_NP")
     fi
     PS1=$PS1'${LOGNAME:-$(logname)}$POLYGLOT_HOSTNAME_STRING'
     PS1=$PS1$(print "$POLYGLOT_NP\033[0m$POLYGLOT_NP")
