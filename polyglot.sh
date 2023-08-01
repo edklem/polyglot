@@ -517,7 +517,7 @@ if [ -n "$ZSH_VERSION" ] && [ "${0#-}" != 'ksh' ] &&
     if _polyglot_has_colors; then
       PS1+='%(?..%B%F{red}(%?%)%b%f )'
       PS1+='%5v'
-      PS1+='%(!.%S.%B%F{green})%n%1v%(!.%s.%f%b) '
+      PS1+='%(!.${POLYGLOT_ROOT_COLOR:-%S}.%B%F{green})%n%1v%(!.%s.%f%b) '
       PS1+='%B%F{blue}%2v%f%b'
       PS1+='%F{yellow}%3v%f ${POLYGLOT_USER_PROMPT_INDICATOR:-%#} '
     else
