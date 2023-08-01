@@ -72,6 +72,10 @@ fi
 # Don't let virtual env active scripts alter prompt
 VIRTUAL_ENV_DISABLE_PROMPT=1
 
+# Check for POLYGLOT_ROOT_COLOR and set to default if not already set.
+test -z $POLYGLOT_ROOT_COLOR && POLYGLOT_ROOT_COLOR='[7m'
+
+
 ############################################################
 # Display non-zero exit status
 #
@@ -248,7 +252,7 @@ _polyglot_prompt_dirtrim() {
 ###########################################################
 _polyglot_branch_status() {
   [ -n "$ZSH_VERSION" ] && setopt LOCAL_OPTIONS NO_WARN_CREATE_GLOBAL \
-    NO_WARN_NESTED_VAR > /dev/null 2>&1
+    NO_WARN_NESTED_VAR SH_WORD_SPLIT > /dev/null 2>&1
 
   POLYGLOT_REF="$(env git symbolic-ref --quiet HEAD 2> /dev/null)"
   case $? in        # See what the exit code is.
@@ -271,16 +275,56 @@ _polyglot_branch_status() {
       *' have diverged,'*) POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}&*" ;;
     esac
     case $POLYGLOT_GIT_STATUS in
-      *'Your branch is behind '*) POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}&" ;;
+      *'Your branch is behind '*) 
+         POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}&"
+         if [ "${POLYGLOT_SHOW_GIT_STATUS_COUNT:-0}" -eq 1 ]; then 
+             PG_AHEAD_TMP=${POLYGLOT_GIT_STATUS##On*Your branch is behind*by }
+             POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}${PG_AHEAD_TMP%% commit*} "
+             unset PG_AHEAD_TMP
+         fi
+      ;;
     esac
     case $POLYGLOT_GIT_STATUS in
-      *'Your branch is ahead of '*) POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}*" ;;
+      *'Your branch is ahead of '*) 
+         POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}*"
+         if [ "${POLYGLOT_SHOW_GIT_STATUS_COUNT:-0}" -eq 1 ]; then 
+             PG_AHEAD_TMP=${POLYGLOT_GIT_STATUS##On*Your branch is ahead of*by }
+             POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}${PG_AHEAD_TMP%% commit*} "
+             unset PG_AHEAD_TMP
+         fi
+      ;;
+
     esac
     case $POLYGLOT_GIT_STATUS in
-      *'new file:   '*) POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}+" ;;
+      *'new file:   '*) 
+         POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}+" 
+         if [ "${POLYGLOT_SHOW_GIT_STATUS_COUNT:-0}" -eq 1 ]; then 
+             POLYGLOT_GIT_STATUS_NEW_COUNT=0
+             for i in $POLYGLOT_GIT_STATUS ; do 
+               case $i in  *'file:'*)
+                 POLYGLOT_GIT_STATUS_NEW_COUNT=$(( POLYGLOT_GIT_STATUS_NEW_COUNT+ 1));; 
+               esac
+             done
+   
+             POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}${POLYGLOT_GIT_STATUS_NEW_COUNT} " 
+             unset POLYGLOT_GIT_STATUS_NEW_COUNT
+         fi
+      ;;
     esac
     case $POLYGLOT_GIT_STATUS in
-      *'deleted:    '*) POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}x" ;;
+      *'deleted:    '*) 
+        POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}x"
+        if [ "${POLYGLOT_SHOW_GIT_STATUS_COUNT:-0}" -eq 1 ]; then 
+          POLYGLOT_GIT_STATUS_DEL_COUNT=0
+          for i in $POLYGLOT_GIT_STATUS ; do 
+            case $i in  *'deleted:'*)
+              POLYGLOT_GIT_STATUS_DEL_COUNT=$(( POLYGLOT_GIT_STATUS_DEL_COUNT+ 1));; 
+            esac
+          done
+          POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}${POLYGLOT_GIT_STATUS_DEL_COUNT} " 
+          unset POLYGLOT_GIT_STATUS_DEL_COUNT
+        fi
+      ;;
     esac
     case $POLYGLOT_GIT_STATUS in
       *'modified:   '*)
@@ -289,18 +333,58 @@ _polyglot_branch_status() {
         else
           POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}!"
         fi
+
+        if [ "${POLYGLOT_SHOW_GIT_STATUS_COUNT:-0}" -eq 1 ]; then
+          POLYGLOT_GIT_STATUS_MODIFIED_COUNT=0
+          for i in $POLYGLOT_GIT_STATUS ; do 
+            case $i in  *'modified:'*)
+              POLYGLOT_GIT_STATUS_MODIFIED_COUNT=$(( POLYGLOT_GIT_STATUS_MODIFIED_COUNT+ 1));;
+            esac
+          done
+          POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}${POLYGLOT_GIT_STATUS_MODIFIED_COUNT} "
+          unset POLYGLOT_GIT_STATUS_MODIFIED_COUNT
+        fi
+        ;;
+
+    esac
+    case $POLYGLOT_GIT_STATUS in
+      *'renamed:    '*)
+        POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}>"
+        if [ "${POLYGLOT_SHOW_GIT_STATUS_COUNT:-0}" -eq 1 ]; then
+          POLYGLOT_GIT_STATUS_RENAMED_COUNT=0
+          for i in $POLYGLOT_GIT_STATUS ; do
+            case $i in  *'renamed:'*)
+              POLYGLOT_GIT_STATUS_RENAMED_COUNT=$(( POLYGLOT_GIT_STATUS_RENAMED_COUNT+ 1));;
+            esac
+          done
+          POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}${POLYGLOT_GIT_STATUS_RENAMED_COUNT} "
+          unset POLYGLOT_GIT_STATUS_RENAMED_COUNT
+
+        fi
         ;;
     esac
     case $POLYGLOT_GIT_STATUS in
-      *'renamed:    '*) POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}>" ;;
-    esac
-    case $POLYGLOT_GIT_STATUS in
-      *'Untracked files:'*) POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}?" ;;
+      *'Untracked files:'*)
+        POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}?"
+        if [ "${POLYGLOT_SHOW_GIT_STATUS_COUNT:-0}" -eq 1  ]; then
+          POLYGLOT_GIT_STATUS_UNTRACKED=$(LC_ALL=C GIT_OPTIONAL_LOCKS=0 git status --porcelain=v1)
+          POLYGLOT_GIT_STATUS_UNTRACKED_COUNT=0
+          for i in $POLYGLOT_GIT_STATUS_UNTRACKED ; do
+            case $i in  *'??'*)
+              POLYGLOT_GIT_STATUS_UNTRACKED_COUNT=$(( POLYGLOT_GIT_STATUS_UNTRACKED_COUNT+ 1));;
+            esac
+          done
+
+          POLYGLOT_SYMBOLS="${POLYGLOT_SYMBOLS}${POLYGLOT_GIT_STATUS_UNTRACKED_COUNT} "
+          unset POLYGLOT_GIT_STATUS_UNTRACKED_COUNT POLYGLOT_GIT_STATUS_UNTRACKED
+        fi
+        ;;
     esac
 
     [ -n "$POLYGLOT_SYMBOLS" ] && POLYGLOT_SYMBOLS=" $POLYGLOT_SYMBOLS"
 
-    printf ' (%s%s)' "${POLYGLOT_REF#refs/heads/}" "$POLYGLOT_SYMBOLS"
+    printf ' (%s%s)' "${POLYGLOT_REF#refs/heads/}" "${POLYGLOT_SYMBOLS% }"
+
   fi
 
   unset POLYGLOT_REF POLYGLOT_GIT_STATUS POLYGLOT_SYMBOLS
@@ -435,14 +519,21 @@ if [ -n "$ZSH_VERSION" ] && [ "${0#-}" != 'ksh' ] &&
       PS1+='%5v'
       PS1+='%(!.%S.%B%F{green})%n%1v%(!.%s.%f%b) '
       PS1+='%B%F{blue}%2v%f%b'
-      PS1+='%F{yellow}%3v%f %# '
+      PS1+='%F{yellow}%3v%f ${POLYGLOT_USER_PROMPT_INDICATOR:-%#} '
     else
       PS1+='%(?..(%?%) )'
       PS1+='%5v'
       PS1+='%(!.%S.)%n%1v%(!.%s.) '
       PS1+='%2v'
-      PS1+='%3v %# '
+      PS1+='%3v %# ${POLYGLOT_USER_PROMPT_INDICATOR:-%#} '
     fi
+    case "$TERM" in
+    xterm*|rxvt*)
+      print -Pn "\e]0;$USER${psvar[1]} ${psvar[2]} ${psvar[3]} \a"
+      ;;
+    *)
+      ;;
+    esac
   }
 
   ###########################################################
@@ -518,7 +609,7 @@ elif [ -n "$BASH_VERSION" ]; then
             ;;
           *) PS1+="\[\e[01;34m\]\w\[\e[0m\]" ;;
         esac
-        PS1+="\[\e[33m\]\$(_polyglot_branch_status)\[\e[0m\] \$ "
+        PS1+="\[\e[33m\]\$(_polyglot_branch_status)\[\e[0m\] \${POLYGLOT_USER_PROMPT_INDICATOR:-\$} "
       else
         PS1="\$(_polyglot_exit_status \$?)"
         PS1+="\$(_polyglot_venv)"
@@ -529,13 +620,13 @@ elif [ -n "$BASH_VERSION" ]; then
            ;;
           *) PS1+="\w" ;;
         esac
-        PS1+="\$(_polyglot_branch_status) \$ "
+        PS1+="\$(_polyglot_branch_status) \${POLYGLOT_USER_PROMPT_INDICATOR:-\$} "
       fi
     else  # Superuser
       if _polyglot_has_colors; then
         PS1="\[\e[01;31m\]\$(_polyglot_exit_status \$?)\[\e[0m\]"
         PS1+="\$(_polyglot_venv)"
-        PS1+="\[\e[7m\]\u@\h\[\e[0m\] "
+        PS1+="\[\e${POLYGLOT_ROOT_COLOR}\]\u@\h\[\e[0m\] "
         case $BASH_VERSION in
           1.*|2.*|3.*)
             PS1+="\[\e[01;34m\]\$(_polyglot_prompt_dirtrim \$POLYGLOT_PROMPT_DIRTRIM)\[\e[0m\]"
@@ -556,6 +647,15 @@ elif [ -n "$BASH_VERSION" ]; then
         PS1+="\$(_polyglot_branch_status) # "
       fi
     fi
+    # Set terminal title
+    case "$TERM" in
+    xterm*|rxvt*)
+      PS1="\[\e]0;\u${POLYGLOT_HOSTNAME_STRING} \w $(_polyglot_branch_status)\a\]$PS1"
+      ;;
+    *)
+      ;;
+    esac
+
   }
 
   # Only display the $HOSTNAME for an ssh connection
@@ -618,14 +718,14 @@ elif [ -n "$KSH_VERSION" ] || _polyglot_is_dtksh || [ -n "$ZSH_VERSION" ] &&
           PS1+=$(print "\001\E[0m\E[33m\001")
           PS1+='$(_polyglot_branch_status $POLYGLOT_KSH_BANG)'
           PS1+=$(print "\001\E[0m\001")
-          PS1+=' \$ '
+          PS1+=' ${POLYGLOT_USER_PROMPT_INDICATOR:-\$} '
         else
           PS1='$(_polyglot_exit_status $?)'
           PS1+='$(_polyglot_venv)'
           PS1+='${LOGNAME:-$(logname)}$POLYGLOT_HOSTNAME_STRING '
           PS1+='$(_polyglot_prompt_dirtrim "$POLYGLOT_PROMPT_DIRTRIM")'
           PS1+='$(_polyglot_branch_status $POLYGLOT_KSH_BANG)'
-          PS1+=' \$ '
+          PS1+=' ${POLYGLOT_USER_PROMPT_INDICATOR:-\$} '
         fi
       else # Superuser
         if _polyglot_has_colors; then
@@ -633,7 +733,7 @@ elif [ -n "$KSH_VERSION" ] || _polyglot_is_dtksh || [ -n "$ZSH_VERSION" ] &&
           PS1+='$(_polyglot_exit_status $?)'
           PS1+=$(print "\001\E[0m")
           PS1+='$(_polyglot_venv)'
-          PS1+=$(print "\E[7m\001")
+          PS1+=$(print "\E${POLYGLOT_ROOT_COLOR}\001")
           PS1+='${LOGNAME:-$(logname)}$POLYGLOT_HOSTNAME_STRING'
           PS1+=$(print "\001\E[0m\001")
           PS1+=' '
@@ -668,7 +768,7 @@ elif [ -n "$KSH_VERSION" ] || _polyglot_is_dtksh || [ -n "$ZSH_VERSION" ] &&
         fi
       else  # Superuser
         if _polyglot_has_colors && [ -z "$ZSH_VERSION" ]; then
-          PS1="$(print '\E[31;1m$(_polyglot_exit_status $?)\E[0m$(_polyglot_venv)\E[7m${LOGNAME:-$(logname)}$POLYGLOT_HOSTNAME_STRING\E[0m \E[34;1m$(_polyglot_prompt_dirtrim "$POLYGLOT_PROMPT_DIRTRIM")\E[0m\E[33m$(_polyglot_branch_status $POLYGLOT_KSH_BANG)\E[0m\E[0m # ')"
+          PS1="$(print '\E[31;1m$(_polyglot_exit_status $?)\E[0m$(_polyglot_venv)\E${POLYGLOT_ROOT_COLOR}${LOGNAME:-$(logname)}$POLYGLOT_HOSTNAME_STRING\E[0m \E[34;1m$(_polyglot_prompt_dirtrim "$POLYGLOT_PROMPT_DIRTRIM")\E[0m\E[33m$(_polyglot_branch_status $POLYGLOT_KSH_BANG)\E[0m\E[0m # ')"
         else
           PS1="$(print '$(_polyglot_exit_status $?)$(_polyglot_venv)\E[7m${LOGNAME:-$(logname)}$POLYGLOT_HOSTNAME_STRING\E[0m $(_polyglot_prompt_dirtrim "$POLYGLOT_PROMPT_DIRTRIM")$(_polyglot_branch_status $POLYGLOT_KSH_BANG) # ')"
         fi
@@ -712,7 +812,7 @@ elif _polyglot_is_pdksh || [ "${0#-}" = 'dash' ] || _polyglot_is_busybox ||
     if ! _polyglot_is_superuser; then
       PS1=$PS1$(print "$POLYGLOT_NP\033[32;1m$POLYGLOT_NP")
     else
-      PS1=$PS1$(print "$POLYGLOT_NP\033[7m$POLYGLOT_NP")
+      PS1=$PS1$(print "$POLYGLOT_NP\033${POLYGLOT_ROOT_COLOR}$POLYGLOT_NP")
     fi
     PS1=$PS1'${LOGNAME:-$(logname)}$POLYGLOT_HOSTNAME_STRING'
     PS1=$PS1$(print "$POLYGLOT_NP\033[0m$POLYGLOT_NP")
@@ -722,7 +822,8 @@ elif _polyglot_is_pdksh || [ "${0#-}" = 'dash' ] || _polyglot_is_busybox ||
     PS1=$PS1$(print "$POLYGLOT_NP\033[0m\033[33m$POLYGLOT_NP")
     PS1=$PS1'$(_polyglot_branch_status $POLYGLOT_KSH_BANG)'
     PS1=$PS1$(print "$POLYGLOT_NP\033[0m$POLYGLOT_NP")
-    PS1=$PS1' \$ '
+    PS1=$PS1' ${POLYGLOT_USER_PROMPT_INDICATOR:-\$} '
+
 
   elif _polyglot_is_yash || [ "${0#-}" = 'osh' ] && _polyglot_has_colors; then
     PS1='\[\e[01;31m\]$(_polyglot_exit_status $?)\[\e[0m\]'
@@ -730,14 +831,14 @@ elif _polyglot_is_pdksh || [ "${0#-}" = 'dash' ] || _polyglot_is_busybox ||
     if ! _polyglot_is_superuser; then
       PS1=$PS1'\[\e[01;32m\]${LOGNAME:-$(logname)}$POLYGLOT_HOSTNAME_STRING\[\e[0m\] '
     else
-      PS1=$PS1'\[\e[7m\]${LOGNAME:-$(logname)}$POLYGLOT_HOSTNAME_STRING\[\e[0m\] '
+      PS1=$PS1'\[\e$POLYGLOT_ROOT_COLOR\]${LOGNAME:-$(logname)}$POLYGLOT_HOSTNAME_STRING\[\e[0m\] '
     fi
     PS1=$PS1'\[\e[01;34m\]$(_polyglot_prompt_dirtrim "$POLYGLOT_PROMPT_DIRTRIM")\[\e[0m\]'
     PS1=$PS1'\[\e[33m\]$(_polyglot_branch_status $POLYGLOT_KSH_BANG)\[\e[0m\] \$ '
   else
     PS1='$(_polyglot_exit_status $?)$(_polyglot_venv)${LOGNAME:-$(logname)}$POLYGLOT_HOSTNAME_STRING $(_polyglot_prompt_dirtrim "$POLYGLOT_PROMPT_DIRTRIM")$(_polyglot_branch_status $POLYGLOT_KSH_BANG) '
     if ! _polyglot_is_superuser; then
-      PS1=$PS1'$ '
+      PS1=$PS1' ${POLYGLOT_USER_PROMPT_INDICATOR:-\$} '
     else
       PS1=$PS1'# '
     fi
